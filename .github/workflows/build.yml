@@ -1,0 +1,61 @@
+name: Build WCad
+
+# Si avvia con: Actions → Build WCad → Run workflow
+# oppure caricando un tag di versione, es. v1.0.0
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Scarica il codice
+        uses: actions/checkout@v4
+
+      - name: Installa Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installa le dipendenze
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller pillow
+
+      - name: Crea l'icona
+        run: python crea_icona.py
+
+      - name: Icona per Windows (.ico)
+        if: runner.os == 'Windows'
+        run: python -c "from PIL import Image; Image.open('icona.png').save('icona.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
+
+      - name: Icona per macOS (.icns)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir icona.iconset
+          for s in 16 32 128 256 512; do
+            sips -z $s $s icona.png --out icona.iconset/icon_${s}x${s}.png
+            sips -z $((s*2)) $((s*2)) icona.png --out icona.iconset/icon_${s}x${s}@2x.png
+          done
+          iconutil -c icns icona.iconset -o icona.icns
+
+      - name: Compila WCad (Windows)
+        if: runner.os == 'Windows'
+        run: pyinstaller --noconfirm --windowed --name WCad --icon icona.ico main.py
+
+      - name: Compila WCad (macOS)
+        if: runner.os == 'macOS'
+        run: pyinstaller --noconfirm --windowed --name WCad --icon icona.icns main.py
+
+      - name: Carica i file compilati
+        uses: actions/upload-artifact@v4
+        with:
+          name: WCad-1.0-${{ runner.os }}
+          path: dist/
