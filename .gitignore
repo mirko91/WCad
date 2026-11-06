@@ -1,0 +1,19 @@
+# ambiente virtuale Python
+venv/
+.venv/
+
+# cache di Python
+__pycache__/
+*.pyc
+
+# file generati dalla compilazione
+build/
+dist/
+*.spec
+icona.png
+icona.ico
+icona.icns
+icona.iconset/
+
+# file di sistema macOS
+.DS_Store
